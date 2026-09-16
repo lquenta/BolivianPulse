@@ -8,14 +8,13 @@ services:
     plan: free
     region: oregon
     rootDir: .
-    buildCommand: npm install && npm run build -w apps/web
+    # Include optional native bindings (lightningcss/oxide) for Linux builders.
+    buildCommand: npm install --include=optional && npm run build -w apps/web
     startCommand: npm run start -w apps/web
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
         value: "22"
-      - key: NODE_ENV
-        value: production
       - key: ENABLE_INGEST
         value: "true"
       - key: INGEST_INTERVAL_MS
