@@ -1,0 +1,9 @@
+node_modules
+.next
+dist
+data/bundle.json
+.env
+.env.local
+*.log
+.DS_Store
+Dashbo.md

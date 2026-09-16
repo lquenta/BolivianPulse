@@ -1,0 +1,142 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import type { SourceHealth } from "@bo-dash/shared";
+import { asNumber, formatNum, formatPct } from "@/lib/format";
+import { useMounted } from "@/hooks/useClientTime";
+import { RefreshPill } from "@/components/LoadingScreen";
+
+export function HeaderBar({
+  connected,
+  spreadPct,
+  official,
+  parallel,
+  health,
+  clock,
+  generatedAt,
+  tvWall,
+  onToggleTv,
+  refreshing = false,
+}: {
+  connected: boolean;
+  spreadPct?: number;
+  official?: unknown;
+  parallel?: unknown;
+  health: SourceHealth[];
+  clock: string;
+  generatedAt?: string;
+  tvWall: boolean;
+  onToggleTv: () => void;
+  refreshing?: boolean;
+}) {
+  const mounted = useMounted();
+  const [lag, setLag] = useState<number | null>(null);
+  const ok = health.filter((h) => h.status === "ok").length;
+  const err = health.filter((h) => h.status === "error").length;
+  const off = asNumber(official);
+  const par = asNumber(parallel);
+  const spread =
+    typeof spreadPct === "number" && Number.isFinite(spreadPct)
+      ? spreadPct
+      : off && par
+        ? ((par - off) / off) * 100
+        : undefined;
+
+  useEffect(() => {
+    if (!generatedAt) {
+      setLag(null);
+      return;
+    }
+    const t = new Date(generatedAt).getTime();
+    if (!Number.isFinite(t) || t <= 0) {
+      setLag(null);
+      return;
+    }
+    const tick = () => setLag(Math.max(0, Math.round((Date.now() - t) / 1000)));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [generatedAt]);
+
+  return (
+    <header className="panel relative overflow-hidden px-4 py-3.5 sm:px-5">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 right-0 w-1/2 opacity-40"
+        style={{
+          background:
+            "radial-gradient(480px 160px at 90% 10%, rgba(201,162,39,0.08), transparent 70%)",
+        }}
+      />
+      <div className="relative flex flex-wrap items-center gap-4">
+        <div className="min-w-[180px]">
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <span className="live-badge">Live</span>
+            <RefreshPill show={refreshing} />
+            {mounted && lag != null && !refreshing && (
+              <span className="text-[0.65rem] text-[var(--faint)]" suppressHydrationWarning>
+                datos · {lag < 60 ? `${lag}s` : `${Math.round(lag / 60)}m`}
+              </span>
+            )}
+          </div>
+          <div
+            className="text-[1.65rem] font-semibold leading-none tracking-tight sm:text-2xl"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Bolivia Pulse
+          </div>
+          <div className="mt-1 text-xs text-[var(--muted)]">
+            Economía · Política · Seguridad · Sociedad · Clima
+          </div>
+        </div>
+
+        <div className="ml-auto flex flex-wrap items-stretch gap-2 sm:gap-3">
+          <div className="rounded-[12px] border border-[var(--line)] bg-[var(--bg-elev)]/70 px-3 py-2">
+            <div className="text-[0.62rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+              La Paz
+            </div>
+            <div className="font-medium tabular-nums tracking-tight" suppressHydrationWarning>
+              {mounted ? clock || "—" : "—"}
+            </div>
+          </div>
+
+          <div className="rounded-[12px] border border-[var(--line)] bg-[var(--bg-elev)]/70 px-3 py-2">
+            <div className="text-[0.62rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+              Oficial
+            </div>
+            <div className="tabular-nums">{formatNum(off)}</div>
+          </div>
+
+          <div className="rounded-[12px] border border-[var(--accent)]/35 bg-[var(--accent-soft)] px-3 py-2">
+            <div className="text-[0.62rem] uppercase tracking-[0.12em] text-[var(--accent)]">
+              Paralelo
+            </div>
+            <div className="font-semibold tabular-nums text-[var(--accent)]">
+              {formatNum(par)}
+              {spread !== undefined && (
+                <span className="ml-2 text-xs font-medium opacity-90">
+                  {spread >= 0 ? "+" : ""}
+                  {formatPct(spread)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-[12px] border border-[var(--line)] bg-[var(--bg-elev)]/70 px-3 py-2">
+            <span className={`health-dot ${connected ? "ok" : "error"}`} />
+            <div className="text-xs leading-tight">
+              <div className="font-medium">{connected ? "SSE vivo" : "Reconectando"}</div>
+              <div className="text-[var(--muted)]">
+                {ok} ok{err ? ` · ${err} err` : ""}
+              </div>
+            </div>
+          </div>
+
+          <button type="button" onClick={onToggleTv} className="btn btn-accent self-center">
+            {tvWall ? "Salir TV" : "TV wall"}
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}

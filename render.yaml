@@ -1,0 +1,30 @@
+# Render Blueprint — https://dashboard.render.com → New → Blueprint
+# Plan free: el servicio se duerme tras ~15 min sin tráfico.
+
+services:
+  - type: web
+    name: bolivia-pulse
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: .
+    buildCommand: npm install && npm run build -w apps/web
+    startCommand: npm run start -w apps/web
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: ENABLE_INGEST
+        value: "true"
+      - key: INGEST_INTERVAL_MS
+        value: "60000"
+      - key: ENABLE_SOCIAL_SCRAPERS
+        value: "false"
+      - key: NEXT_PUBLIC_ENABLE_SOCIAL
+        value: "false"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      # Opcionales — definir en el Dashboard de Render (Environment):
+      # YOUTUBE_API_KEY, FIRMS_MAP_KEY, REDIS_URL

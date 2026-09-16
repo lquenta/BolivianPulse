@@ -1,0 +1,19 @@
+{
+  "name": "dashboard-bolivia-rt",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/web",
+    "dev:ingest": "npm run start -w apps/ingest",
+    "build": "npm run build -w apps/web",
+    "start": "npm run start -w apps/web",
+    "ingest": "npm run start -w apps/ingest",
+    "typecheck": "npm run typecheck -w @bo-dash/shared"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,41 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bodash
+      POSTGRES_PASSWORD: bodash
+      POSTGRES_DB: bodash
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgres://bodash:bodash@postgres:5432/bodash
+      ENABLE_INGEST: "true"
+      ENABLE_SOCIAL_SCRAPERS: "false"
+      NEXT_PUBLIC_APP_NAME: "Bolivia Pulse"
+    depends_on:
+      - redis
+      - postgres
+    volumes:
+      - ./data:/app/data
+
+volumes:
+  redis_data:
+  pg_data:
