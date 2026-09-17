@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { SourceHealth } from "@bo-dash/shared";
 import { asNumber, formatNum, formatPct } from "@/lib/format";
 import { useMounted } from "@/hooks/useClientTime";
+import { useTheme } from "@/hooks/useTheme";
 import { RefreshPill } from "@/components/LoadingScreen";
 
 export function HeaderBar({
@@ -26,6 +27,7 @@ export function HeaderBar({
   refreshing?: boolean;
 }) {
   const mounted = useMounted();
+  const { theme, toggle, ready } = useTheme();
   const [lag, setLag] = useState<number | null>(null);
   const ok = health.filter((h) => h.status === "ok").length;
   const err = health.filter((h) => h.status === "error").length;
@@ -58,10 +60,10 @@ export function HeaderBar({
     <header className="panel relative overflow-hidden px-4 py-3.5 sm:px-5">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 w-1/2 opacity-40"
+        className="pointer-events-none absolute inset-y-0 right-0 w-1/2 opacity-50"
         style={{
           background:
-            "radial-gradient(480px 160px at 90% 10%, rgba(201,162,39,0.08), transparent 70%)",
+            "radial-gradient(480px 160px at 90% 10%, var(--bg-spot-2), transparent 70%)",
         }}
       />
       <div className="relative flex flex-wrap items-center gap-4">
@@ -79,23 +81,23 @@ export function HeaderBar({
             Bolivia Pulse
           </h1>
           <p className="text-[0.72rem] text-[var(--muted)]">
-            Monitoreo casi en tiempo real · {mounted ? clock : "—"}
+            Sala de monitoreo · {mounted ? clock : "—"}
           </p>
         </div>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <div className="rounded-[12px] border border-[var(--line)] bg-[var(--bg-elev)]/70 px-3 py-2">
+          <div className="kpi-card">
             <div className="text-[0.62rem] uppercase tracking-[0.12em] text-[var(--muted)]">
               Oficial
             </div>
-            <div className="tabular-nums">{formatNum(off)}</div>
+            <div className="kpi text-[1.25rem] tabular-nums">{formatNum(off)}</div>
           </div>
 
-          <div className="rounded-[12px] border border-[var(--accent)]/35 bg-[var(--accent-soft)] px-3 py-2">
+          <div className="kpi-card kpi-card--accent">
             <div className="text-[0.62rem] uppercase tracking-[0.12em] text-[var(--accent)]">
               Paralelo
             </div>
-            <div className="font-semibold tabular-nums text-[var(--accent)]">
+            <div className="kpi text-[1.25rem] font-semibold tabular-nums text-[var(--accent)]">
               {formatNum(par)}
               {spread !== undefined && (
                 <span className="ml-2 text-xs font-medium opacity-90">
@@ -115,6 +117,16 @@ export function HeaderBar({
               </div>
             </div>
           </div>
+
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={toggle}
+            aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+          >
+            {ready ? (theme === "dark" ? "Claro" : "Oscuro") : "…"}
+          </button>
         </div>
       </div>
     </header>

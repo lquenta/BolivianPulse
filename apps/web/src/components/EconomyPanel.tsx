@@ -18,7 +18,7 @@ export function EconomyPanel({ kpis }: { kpis: EconomySnapshot }) {
       backgroundColor: "transparent",
       grid: { left: 36, right: 12, top: 28, bottom: 24 },
       tooltip: { trigger: "axis" as const },
-                  legend: { textStyle: { color: "#8f9aab" }, top: 0, right: 0 },
+                  legend: { textStyle: { color: "#a8988c" }, top: 0, right: 0 },
       xAxis: {
         type: "category" as const,
         data: hist.map((h) =>
@@ -27,14 +27,14 @@ export function EconomyPanel({ kpis }: { kpis: EconomySnapshot }) {
             minute: "2-digit",
           })
         ),
-        axisLabel: { color: "#8f9aab", fontSize: 10 },
-        axisLine: { lineStyle: { color: "#2a3342" } },
+        axisLabel: { color: "#a8988c", fontSize: 10 },
+        axisLine: { lineStyle: { color: "#3a302a" } },
       },
       yAxis: {
         type: "value" as const,
         scale: true,
-        axisLabel: { color: "#8f9aab", fontSize: 10 },
-        splitLine: { lineStyle: { color: "#2a3342", type: "dashed" as const } },
+        axisLabel: { color: "#a8988c", fontSize: 10 },
+        splitLine: { lineStyle: { color: "#3a302a", type: "dashed" as const } },
       },
       series: [
         {
@@ -42,8 +42,8 @@ export function EconomyPanel({ kpis }: { kpis: EconomySnapshot }) {
           type: "line" as const,
           smooth: true,
           data: hist.map((h) => asNumber(h.official)),
-          lineStyle: { color: "#4a8f9e", width: 2 },
-          itemStyle: { color: "#4a8f9e" },
+          lineStyle: { color: "#2ec4b6", width: 2 },
+          itemStyle: { color: "#2ec4b6" },
           showSymbol: false,
           areaStyle: {
             color: {
@@ -53,8 +53,8 @@ export function EconomyPanel({ kpis }: { kpis: EconomySnapshot }) {
               x2: 0,
               y2: 1,
               colorStops: [
-                { offset: 0, color: "rgba(74,143,158,0.18)" },
-                { offset: 1, color: "rgba(74,143,158,0)" },
+                { offset: 0, color: "rgba(46,196,182,0.18)" },
+                { offset: 1, color: "rgba(46,196,182,0)" },
               ],
             },
           },
@@ -64,8 +64,8 @@ export function EconomyPanel({ kpis }: { kpis: EconomySnapshot }) {
           type: "line" as const,
           smooth: true,
           data: hist.map((h) => asNumber(h.parallel)),
-          lineStyle: { color: "#c9a227", width: 2 },
-          itemStyle: { color: "#c9a227" },
+          lineStyle: { color: "#f0b429", width: 2 },
+          itemStyle: { color: "#f0b429" },
           showSymbol: false,
         },
       ],
@@ -97,7 +97,7 @@ export function EconomyPanel({ kpis }: { kpis: EconomySnapshot }) {
               value: asNumber(e.median) || asNumber(e.sell) || asNumber(e.buy) || 0,
             }))
             .filter((d) => d.value > 0),
-          color: ["#c9a227", "#4a8f9e", "#5b7fa6", "#c75a52", "#7d8aa3", "#6a9e8c"],
+          color: ["#f0b429", "#2ec4b6", "#5b9fd4", "#e85d4c", "#7d8aa3", "#6a9e8c"],
         },
       ],
     };
