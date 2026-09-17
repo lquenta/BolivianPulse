@@ -24,22 +24,22 @@ export function HazardsBars({ points }: { points: MapLayerPoint[] }) {
       xAxis: {
         type: "category" as const,
         data: [...buckets, "fuegos"],
-        axisLabel: { color: "#8f9aab", fontSize: 10 },
+        axisLabel: { color: "#9eb4d4", fontSize: 10 },
       },
       yAxis: {
         type: "value" as const,
-        axisLabel: { color: "#8f9aab", fontSize: 10 },
-        splitLine: { lineStyle: { color: "#2a3342", type: "dashed" as const } },
+        axisLabel: { color: "#9eb4d4", fontSize: 10 },
+        splitLine: { lineStyle: { color: "#1e3a62", type: "dashed" as const } },
       },
       series: [
         {
           type: "bar" as const,
           data: [
-            { value: counts[0], itemStyle: { color: "#c4903a" } },
-            { value: counts[1], itemStyle: { color: "#c4903a" } },
-            { value: counts[2], itemStyle: { color: "#c4903a" } },
-            { value: counts[3], itemStyle: { color: "#c75a52" } },
-            { value: fires, itemStyle: { color: "#c75a52" } },
+            { value: counts[0], itemStyle: { color: "#ffcc00" } },
+            { value: counts[1], itemStyle: { color: "#ff9a1f" } },
+            { value: counts[2], itemStyle: { color: "#ff6b3d" } },
+            { value: counts[3], itemStyle: { color: "#ff3d5a" } },
+            { value: fires, itemStyle: { color: "#ff2048" } },
           ],
         },
       ],

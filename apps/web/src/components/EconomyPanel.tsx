@@ -18,7 +18,7 @@ export function EconomyPanel({ kpis }: { kpis: EconomySnapshot }) {
       backgroundColor: "transparent",
       grid: { left: 36, right: 12, top: 28, bottom: 24 },
       tooltip: { trigger: "axis" as const },
-                  legend: { textStyle: { color: "#a8988c" }, top: 0, right: 0 },
+                  legend: { textStyle: { color: "#9eb4d4" }, top: 0, right: 0 },
       xAxis: {
         type: "category" as const,
         data: hist.map((h) =>
@@ -27,14 +27,14 @@ export function EconomyPanel({ kpis }: { kpis: EconomySnapshot }) {
             minute: "2-digit",
           })
         ),
-        axisLabel: { color: "#a8988c", fontSize: 10 },
-        axisLine: { lineStyle: { color: "#3a302a" } },
+        axisLabel: { color: "#9eb4d4", fontSize: 10 },
+        axisLine: { lineStyle: { color: "#1e3a62" } },
       },
       yAxis: {
         type: "value" as const,
         scale: true,
-        axisLabel: { color: "#a8988c", fontSize: 10 },
-        splitLine: { lineStyle: { color: "#3a302a", type: "dashed" as const } },
+        axisLabel: { color: "#9eb4d4", fontSize: 10 },
+        splitLine: { lineStyle: { color: "#1e3a62", type: "dashed" as const } },
       },
       series: [
         {
@@ -42,8 +42,8 @@ export function EconomyPanel({ kpis }: { kpis: EconomySnapshot }) {
           type: "line" as const,
           smooth: true,
           data: hist.map((h) => asNumber(h.official)),
-          lineStyle: { color: "#2ec4b6", width: 2 },
-          itemStyle: { color: "#2ec4b6" },
+          lineStyle: { color: "#00f0c8", width: 2.5 },
+          itemStyle: { color: "#00f0c8" },
           showSymbol: false,
           areaStyle: {
             color: {
@@ -53,8 +53,8 @@ export function EconomyPanel({ kpis }: { kpis: EconomySnapshot }) {
               x2: 0,
               y2: 1,
               colorStops: [
-                { offset: 0, color: "rgba(46,196,182,0.18)" },
-                { offset: 1, color: "rgba(46,196,182,0)" },
+                { offset: 0, color: "rgba(0,240,200,0.28)" },
+                { offset: 1, color: "rgba(0,240,200,0)" },
               ],
             },
           },
@@ -64,8 +64,8 @@ export function EconomyPanel({ kpis }: { kpis: EconomySnapshot }) {
           type: "line" as const,
           smooth: true,
           data: hist.map((h) => asNumber(h.parallel)),
-          lineStyle: { color: "#f0b429", width: 2 },
-          itemStyle: { color: "#f0b429" },
+          lineStyle: { color: "#ffcc00", width: 2.5 },
+          itemStyle: { color: "#ffcc00" },
           showSymbol: false,
         },
       ],
@@ -97,17 +97,20 @@ export function EconomyPanel({ kpis }: { kpis: EconomySnapshot }) {
               value: asNumber(e.median) || asNumber(e.sell) || asNumber(e.buy) || 0,
             }))
             .filter((d) => d.value > 0),
-          color: ["#f0b429", "#2ec4b6", "#5b9fd4", "#e85d4c", "#7d8aa3", "#6a9e8c"],
+          color: ["#ffcc00", "#00f0c8", "#3da9ff", "#ff3d5a", "#a78bfa", "#2dff9a"],
         },
       ],
     };
   }, [kpis, parallel]);
 
   return (
-    <section className="panel p-4 sm:p-5">
-      <div className="mb-3 flex items-center justify-between gap-2">
+    <section className="panel economy-panel p-4 sm:p-5">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="panel-title mb-0">Economía · tipo de cambio</h2>
-        <span className="chip">BCB + paralelo</span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="chip">BCB + paralelo</span>
+          <span className="live-badge">FX</span>
+        </div>
       </div>
 
       <div className="mb-4 grid grid-cols-3 gap-2">

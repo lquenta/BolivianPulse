@@ -12,6 +12,7 @@ import { WeatherPanel } from "@/components/WeatherPanel";
 import { SourceHealthPanel } from "@/components/SourceHealthPanel";
 import { HazardsBars } from "@/components/HazardsBars";
 import { TopicIndicators } from "@/components/TopicIndicators";
+import { LiveIndicators } from "@/components/LiveIndicators";
 import { AbsoluteTime } from "@/hooks/useClientTime";
 import { SoftSection } from "@/components/SoftSection";
 import { LoadingScreen, RefreshPill } from "@/components/LoadingScreen";
@@ -46,7 +47,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="dash-shell mx-auto flex min-h-screen max-w-[1680px] flex-col gap-3 p-3 sm:gap-3.5 sm:p-4">
+    <div className="dash-shell mx-auto flex min-h-screen max-w-[1680px] flex-col gap-4 p-3 sm:gap-4 sm:p-4 lg:gap-5 lg:p-5">
       <HeaderBar
         connected={connected}
         official={bundle.kpis.official}
@@ -58,23 +59,24 @@ export function Dashboard() {
         refreshing={refreshing}
       />
 
-      <SoftSection updating={refreshing} label="Actualizando titulares…">
-        <NewsTicker items={bundle.ticker} />
-      </SoftSection>
-
       {error && (
-        <div className="rounded-[12px] border border-[var(--danger)]/35 bg-[var(--danger)]/10 px-3 py-2 text-sm">
+        <div className="rounded-2xl border border-[var(--danger)]/40 bg-[var(--danger)]/12 px-4 py-2.5 text-sm">
           Stream: {error}
         </div>
       )}
 
-      <SoftSection updating={refreshing} label="Actualizando pulso…">
-        <TopicIndicators
-          items={bundle.topicIndicators ?? []}
-          events={bundle.events ?? []}
-        />
-      </SoftSection>
-      <div className="grid min-h-0 gap-3 lg:grid-cols-[1.25fr_0.75fr] lg:items-stretch lg:gap-3.5">
+      {/* Above-the-fold: headlines + live vitals */}
+      <div className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr] lg:items-start lg:gap-5">
+        <SoftSection updating={refreshing} label="Actualizando titulares…">
+          <NewsTicker items={bundle.ticker} />
+        </SoftSection>
+        <SoftSection updating={refreshing} label="Actualizando indicadores…">
+          <LiveIndicators bundle={bundle} />
+        </SoftSection>
+      </div>
+
+      {/* Primary workspace: map + FX */}
+      <div className="grid min-h-0 gap-4 lg:grid-cols-[1.3fr_0.7fr] lg:items-stretch lg:gap-5">
         <SoftSection
           fill
           updating={refreshing}
@@ -88,20 +90,20 @@ export function Dashboard() {
         </SoftSection>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:gap-3.5">
-        <SoftSection updating={refreshing}>
-          <DomainPie counts={bundle.domainCounts} />
-        </SoftSection>
-        <SoftSection updating={refreshing}>
-          <HazardsBars points={bundle.mapLayers} />
-        </SoftSection>
-      </div>
+      {/* Social heat */}
+      <SoftSection updating={refreshing} label="Actualizando pulso…">
+        <TopicIndicators
+          items={bundle.topicIndicators ?? []}
+          events={bundle.events ?? []}
+        />
+      </SoftSection>
 
-      <div className="grid gap-3 lg:grid-cols-[1.05fr_0.95fr] lg:gap-3.5">
+      {/* Detail lane */}
+      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] lg:gap-5">
         <SoftSection updating={refreshing} label="Actualizando feed…">
           <EventsFeed events={bundle.events} />
         </SoftSection>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           <SoftSection updating={refreshing}>
             <WeatherPanel weather={bundle.weather} />
           </SoftSection>
@@ -111,7 +113,17 @@ export function Dashboard() {
         </div>
       </div>
 
-      <footer className="flex flex-wrap items-center justify-center gap-3 pb-1 text-center text-[0.68rem] tracking-wide text-[var(--faint)]">
+      {/* Secondary analytics */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:gap-5">
+        <SoftSection updating={refreshing}>
+          <DomainPie counts={bundle.domainCounts} />
+        </SoftSection>
+        <SoftSection updating={refreshing}>
+          <HazardsBars points={bundle.mapLayers} />
+        </SoftSection>
+      </div>
+
+      <footer className="flex flex-wrap items-center justify-center gap-3 pb-2 text-center text-[0.7rem] tracking-wide text-[var(--faint)]">
         <span>
           Actualizado <AbsoluteTime iso={bundle.generatedAt} /> · fuentes públicas · UI cada ~60s
         </span>

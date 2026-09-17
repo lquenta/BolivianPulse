@@ -22,10 +22,8 @@ function sanitize(bundle: DashboardBundle): DashboardBundle {
         : undefined;
 
   const events = bundle.events ?? [];
-  const topics =
-    bundle.topicIndicators?.some((t) => t.count > 0)
-      ? bundle.topicIndicators
-      : summarizeTopics(events);
+  // Always recompute topics from events so lastSource / summary / image stay fresh.
+  const topics = summarizeTopics(events);
 
   return {
     ...bundle,

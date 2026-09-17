@@ -31,6 +31,8 @@ export type TickerItem = {
   sourceUrl?: string;
   occurredAt: string;
   urgency: "breaking" | "economia" | "normal";
+  summary?: string;
+  imageUrl?: string;
 };
 
 export type SourceHealth = {
@@ -117,6 +119,9 @@ export type TopicIndicator = {
   lastTitle?: string;
   lastUrl?: string;
   lastAt?: string;
+  lastSource?: string;
+  lastSummary?: string;
+  lastImageUrl?: string;
 };
 
 export type VideoItem = {
@@ -374,6 +379,7 @@ export function summarizeTopics(events: EventItem[]): TopicIndicator[] {
   );
   for (const ev of sorted) {
     const keys = matchTopics(`${ev.title} ${ev.summary ?? ""} ${(ev.tags ?? []).join(" ")}`);
+    const imageUrl = ev.media?.thumb || ev.media?.url;
     for (const key of keys) {
       const row = map.get(key);
       if (!row) continue;
@@ -382,6 +388,13 @@ export function summarizeTopics(events: EventItem[]): TopicIndicator[] {
         row.lastTitle = ev.title;
         row.lastUrl = ev.sourceUrl;
         row.lastAt = ev.occurredAt;
+        row.lastSource = ev.source;
+        row.lastSummary = ev.summary?.slice(0, 140);
+        row.lastImageUrl = imageUrl;
+      } else if (!row.lastImageUrl && imageUrl) {
+        row.lastImageUrl = imageUrl;
+      } else if (!row.lastSummary && ev.summary) {
+        row.lastSummary = ev.summary.slice(0, 140);
       }
     }
   }
@@ -475,6 +488,62 @@ export function sourcePrecedence(source: string): number {
   if (/(gdelt|reliefweb)/.test(s)) return 15;
   if (/(usgs|gdacs|firms|opensky)/.test(s)) return 10;
   return 55;
+}
+
+const SOURCE_FAVICON_DOMAINS: Array<{ match: RegExp; domain: string }> = [
+  { match: /los tiempos/i, domain: "lostiempos.com" },
+  { match: /el deber/i, domain: "eldeber.com.bo" },
+  { match: /unitel/i, domain: "unitel.bo" },
+  { match: /red uno/i, domain: "reduno.com.bo" },
+  { match: /correo del sur/i, domain: "correodelsur.com" },
+  { match: /p[aá]gina siete/i, domain: "paginasiete.bo" },
+  { match: /opini[oó]n/i, domain: "opinion.com.bo" },
+  { match: /ox[ií]geno/i, domain: "oxigeno.bo" },
+  { match: /erbol/i, domain: "erbol.com.bo" },
+  { match: /abi\b/i, domain: "abi.bo" },
+  { match: /urgentebo/i, domain: "urgentebo.com" },
+  { match: /la raz[oó]n/i, domain: "la-razon.com" },
+  { match: /gdacs/i, domain: "gdacs.org" },
+  { match: /reliefweb/i, domain: "reliefweb.int" },
+];
+
+function publisherFromTitle(title?: string): string | undefined {
+  if (!title) return undefined;
+  const m = title.match(/\s[-–|]\s([^–|-]{2,40})$/);
+  return m?.[1]?.trim();
+}
+
+/** Favicon URL for a news source (avoids useless google.com icons). */
+export function sourceFaviconUrl(opts: {
+  source?: string;
+  title?: string;
+  url?: string;
+}): string | undefined {
+  const { source, title, url } = opts;
+  if (url) {
+    try {
+      const host = new URL(url).hostname.replace(/^www\./, "");
+      if (
+        host &&
+        !host.includes("google.") &&
+        !host.includes("news.google") &&
+        !host.includes("gstatic.")
+      ) {
+        return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const hint = `${source ?? ""} ${publisherFromTitle(title) ?? ""}`.trim();
+  if (!hint) return undefined;
+  for (const row of SOURCE_FAVICON_DOMAINS) {
+    if (row.match.test(hint)) {
+      return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(row.domain)}&sz=64`;
+    }
+  }
+  return undefined;
 }
 
 export function dedupeByHeadline<

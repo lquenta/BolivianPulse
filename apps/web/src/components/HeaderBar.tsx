@@ -57,50 +57,59 @@ export function HeaderBar({
   }, [generatedAt]);
 
   return (
-    <header className="panel relative overflow-hidden px-4 py-3.5 sm:px-5">
+    <header className="panel header-bar relative overflow-hidden px-4 py-4 sm:px-6 sm:py-5">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 w-1/2 opacity-50"
+        className="pointer-events-none absolute -right-8 -top-16 h-56 w-56 rounded-full opacity-70"
         style={{
           background:
-            "radial-gradient(480px 160px at 90% 10%, var(--bg-spot-2), transparent 70%)",
+            "radial-gradient(circle, var(--bg-spot-2), transparent 68%)",
         }}
       />
-      <div className="relative flex flex-wrap items-center gap-4">
-        <div className="min-w-[180px]">
-          <div className="mb-1 flex flex-wrap items-center gap-2">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-20 left-1/3 h-48 w-48 rounded-full opacity-50"
+        style={{
+          background:
+            "radial-gradient(circle, var(--bg-spot-4), transparent 70%)",
+        }}
+      />
+
+      <div className="relative flex flex-wrap items-end gap-4 sm:gap-5">
+        <div className="min-w-[200px] flex-1">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="live-badge">Live</span>
             <RefreshPill show={refreshing} />
             {mounted && lag != null && !refreshing && (
-              <span className="text-[0.65rem] text-[var(--faint)]" suppressHydrationWarning>
+              <span className="text-[0.7rem] font-medium text-[var(--muted)]" suppressHydrationWarning>
                 datos · {lag < 60 ? `${lag}s` : `${Math.round(lag / 60)}m`}
               </span>
             )}
           </div>
-          <h1 className="font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight sm:text-2xl">
+          <h1 className="font-[family-name:var(--font-display)] text-[1.75rem] font-bold leading-none tracking-tight sm:text-[2.15rem]">
             Bolivia Pulse
           </h1>
-          <p className="text-[0.72rem] text-[var(--muted)]">
+          <p className="mt-1.5 text-[0.78rem] text-[var(--muted)]">
             Sala de monitoreo · {mounted ? clock : "—"}
           </p>
         </div>
 
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-stretch gap-2 sm:gap-2.5">
           <div className="kpi-card">
-            <div className="text-[0.62rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+            <div className="text-[0.6rem] font-bold uppercase tracking-[0.14em] text-[var(--muted)]">
               Oficial
             </div>
-            <div className="kpi text-[1.25rem] tabular-nums">{formatNum(off)}</div>
+            <div className="kpi text-[1.35rem] tabular-nums">{formatNum(off)}</div>
           </div>
 
           <div className="kpi-card kpi-card--accent">
-            <div className="text-[0.62rem] uppercase tracking-[0.12em] text-[var(--accent)]">
+            <div className="text-[0.6rem] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
               Paralelo
             </div>
-            <div className="kpi text-[1.25rem] font-semibold tabular-nums text-[var(--accent)]">
+            <div className="kpi text-[1.35rem] font-bold tabular-nums text-[var(--accent)]">
               {formatNum(par)}
               {spread !== undefined && (
-                <span className="ml-2 text-xs font-medium opacity-90">
+                <span className="ml-1.5 text-[0.75rem] font-semibold opacity-90">
                   {spread >= 0 ? "+" : ""}
                   {formatPct(spread)}
                 </span>
@@ -108,10 +117,10 @@ export function HeaderBar({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 rounded-[12px] border border-[var(--line)] bg-[var(--bg-elev)]/70 px-3 py-2">
+          <div className="status-pill">
             <span className={`health-dot ${connected ? "ok" : "error"}`} />
             <div className="text-xs leading-tight">
-              <div className="font-medium">{connected ? "SSE vivo" : "Reconectando"}</div>
+              <div className="font-semibold">{connected ? "SSE vivo" : "Reconectando"}</div>
               <div className="text-[var(--muted)]">
                 {ok} ok{err ? ` · ${err} err` : ""}
               </div>

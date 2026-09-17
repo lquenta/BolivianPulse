@@ -44,6 +44,31 @@ function asArray<T>(v: T | T[] | undefined): T[] {
   return Array.isArray(v) ? v : [v];
 }
 
+function extractRssImage(item: Record<string, unknown>, html: string): string | undefined {
+  const enclosure = item.enclosure as Record<string, string> | undefined;
+  const encUrl = enclosure?.["@_url"] ?? enclosure?.url;
+  const encType = enclosure?.["@_type"] ?? enclosure?.type ?? "";
+  if (encUrl && (encType.startsWith("image") || /\.(jpe?g|png|webp|gif)(\?|$)/i.test(encUrl))) {
+    return encUrl;
+  }
+
+  const mediaThumb = item["media:thumbnail"] as Record<string, string> | Array<Record<string, string>> | undefined;
+  const thumb = Array.isArray(mediaThumb) ? mediaThumb[0] : mediaThumb;
+  const thumbUrl = thumb?.["@_url"] ?? thumb?.url;
+  if (thumbUrl) return thumbUrl;
+
+  const mediaContent = item["media:content"] as Record<string, string> | Array<Record<string, string>> | undefined;
+  const media = Array.isArray(mediaContent) ? mediaContent[0] : mediaContent;
+  const mediaUrl = media?.["@_url"] ?? media?.url;
+  const mediaType = media?.["@_type"] ?? media?.type ?? "";
+  if (mediaUrl && (mediaType.startsWith("image") || mediaType === "" || /\.(jpe?g|png|webp|gif)(\?|$)/i.test(mediaUrl))) {
+    return mediaUrl;
+  }
+
+  const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return match?.[1];
+}
+
 function enrichEvent(partial: Omit<EventItem, "tags" | "geo" | "urgency"> & Partial<EventItem>): EventItem {
   const blob = `${partial.title} ${partial.summary ?? ""}`;
   const topics = matchTopics(blob);
@@ -69,11 +94,11 @@ function parseRss(xml: string, source: string): EventItem[] {
       const link = String(Array.isArray(linkRaw) ? linkRaw[0] : linkRaw).trim();
       const pub =
         item.pubDate ?? item.published ?? item.updated ?? item["dc:date"] ?? now;
-      const summary = String(item.description ?? item.summary ?? "")
-        .replace(/<[^>]+>/g, "")
-        .slice(0, 280);
+      const rawHtml = String(item.description ?? item.summary ?? item["content:encoded"] ?? "");
+      const summary = rawHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 280);
       if (!title) return null;
       const occurredAt = new Date(pub).toISOString();
+      const imageUrl = extractRssImage(item as Record<string, unknown>, rawHtml);
       return enrichEvent({
         id: hashId(source, link || title, occurredAt),
         domain: classifyDomain(`${title} ${summary}`),
@@ -83,6 +108,7 @@ function parseRss(xml: string, source: string): EventItem[] {
         sourceUrl: link || undefined,
         occurredAt,
         ingestedAt: now,
+        media: imageUrl ? { type: "image", url: imageUrl, thumb: imageUrl } : undefined,
       });
     })
     .filter(Boolean) as EventItem[];

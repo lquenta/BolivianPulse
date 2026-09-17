@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
+  sourceFaviconUrl,
   summarizeTopics,
   type EventItem,
   type TopicIndicator,
@@ -34,14 +35,49 @@ function tileSize(count: number, max: number, index: number): string {
 }
 
 function pickTopics(items: TopicIndicator[], events: EventItem[]): TopicIndicator[] {
-  const fromItems = items ?? [];
-  const fromEvents = events.length ? summarizeTopics(events) : [];
-  const itemActive = fromItems.filter((t) => t.count > 0).length;
-  const eventActive = fromEvents.filter((t) => t.count > 0).length;
-  if (eventActive > itemActive) return fromEvents;
-  if (itemActive > 0) return fromItems;
-  if (fromEvents.length) return fromEvents;
-  return fromItems;
+  if (events.length) return summarizeTopics(events);
+  return items ?? [];
+}
+
+/** Real article image if present; otherwise publisher favicon (never fabricated art). */
+function PulseMedia({ topic, large }: { topic: TopicIndicator; large?: boolean }) {
+  const [brokenImg, setBrokenImg] = useState(false);
+  const [brokenFav, setBrokenFav] = useState(false);
+  const articleImg = !brokenImg ? topic.lastImageUrl : undefined;
+  const favicon =
+    !articleImg && !brokenFav
+      ? sourceFaviconUrl({
+          source: topic.lastSource,
+          title: topic.lastTitle,
+          url: topic.lastUrl,
+        })
+      : undefined;
+  const src = articleImg || favicon;
+
+  return (
+    <div
+      className={`pulse-media ${large ? "pulse-media--lg" : ""} ${articleImg ? "is-photo" : "is-favicon"} domain-thumb--${topic.domain}`}
+      aria-hidden
+    >
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => {
+            if (articleImg) setBrokenImg(true);
+            else setBrokenFav(true);
+          }}
+        />
+      ) : (
+        <span className="pulse-media__fallback">
+          {(topic.lastSource || topic.label || topic.domain).slice(0, 1).toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
 }
 
 export function TopicIndicators({
@@ -85,16 +121,18 @@ export function TopicIndicators({
           {shown.map((t, i) => {
             const accent = accentFor(t.domain);
             const intensity = t.count > 0 ? t.count / max : 0.08;
+            const sizeClass = tileSize(t.count, max, i);
+            const large = sizeClass.includes("--xl") || sizeClass.includes("--lg");
             return (
               <a
                 key={t.key}
                 href={t.lastUrl || undefined}
                 target={t.lastUrl ? "_blank" : undefined}
                 rel="noreferrer"
-                className={`${tileSize(t.count, max, i)} no-underline`}
+                className={`${sizeClass} no-underline`}
                 style={{
                   borderColor: `color-mix(in srgb, ${accent} 35%, var(--line))`,
-                  background: `linear-gradient(165deg, color-mix(in srgb, ${accent} ${8 + intensity * 14}%, var(--bg-elev)), var(--bg-elev))`,
+                  background: `linear-gradient(165deg, color-mix(in srgb, ${accent} ${14 + intensity * 22}%, var(--bg-elev)), var(--bg-elev))`,
                 }}
               >
                 <div
@@ -104,16 +142,36 @@ export function TopicIndicators({
                     background: accent,
                   }}
                 />
-                <div className="flex items-start justify-between gap-2">
-                  <span className={`domain-dot mt-1.5 domain-${t.domain}`} />
-                  <span className="kpi pulse-count tabular-nums">{t.count}</span>
+                <div className="pulse-tile__top">
+                  <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                    <PulseMedia topic={t} large={large} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className={`domain-dot mt-1.5 domain-${t.domain}`} />
+                        <span className="kpi pulse-count tabular-nums">{t.count}</span>
+                      </div>
+                      <div className="pulse-label mt-1 font-semibold tracking-tight">{t.label}</div>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[0.62rem] uppercase tracking-[0.1em] text-[var(--faint)]">
+                        <span>{t.domain}</span>
+                        {t.lastSource && (
+                          <>
+                            <span aria-hidden>·</span>
+                            <span className="normal-case tracking-normal text-[var(--muted)]">
+                              {t.lastSource.replace(/^Google News\s+/i, "")}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="pulse-label mt-1 font-medium tracking-tight">{t.label}</div>
-                <div className="mt-1 text-[0.62rem] uppercase tracking-[0.1em] text-[var(--faint)]">
-                  {t.domain}
-                </div>
+                {t.lastSummary ? (
+                  <div className="pulse-summary mt-2 line-clamp-2 text-[0.68rem] leading-snug text-[var(--muted)]">
+                    {t.lastSummary}
+                  </div>
+                ) : null}
                 {t.lastTitle && (
-                  <div className="pulse-excerpt mt-2 line-clamp-3 text-[0.7rem] leading-snug text-[var(--muted)]">
+                  <div className="pulse-excerpt mt-1.5 line-clamp-2 text-[0.7rem] leading-snug text-[var(--muted)]">
                     {t.lastTitle}
                     {t.lastAt && (
                       <>

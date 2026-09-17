@@ -167,6 +167,8 @@ export function buildTicker(limit = 60): TickerItem[] {
     sourceUrl: ev.sourceUrl,
     occurredAt: ev.occurredAt,
     urgency: detectUrgency(ev.title, ev.domain, ev.metrics),
+    summary: ev.summary?.slice(0, 180),
+    imageUrl: ev.media?.thumb || ev.media?.url,
   }));
 }
 
