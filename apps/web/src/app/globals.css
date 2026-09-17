@@ -50,10 +50,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-body.tv-wall {
-  overflow: hidden;
-}
-
 a {
   color: inherit;
 }

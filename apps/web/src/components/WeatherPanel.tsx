@@ -41,7 +41,9 @@ export function WeatherPanel({ weather }: { weather: WeatherCity[] }) {
           );
         })}
         {!weather.length && (
-          <div className="col-span-full text-sm text-[var(--muted)]">Cargando Open-Meteo…</div>
+          <div className="col-span-full text-sm text-[var(--muted)]">
+            Sin datos de Open-Meteo todavía (reintentando en el próximo ciclo).
+          </div>
         )}
       </div>
     </section>

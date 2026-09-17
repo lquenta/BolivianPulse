@@ -35,7 +35,6 @@ docker compose up
 
 | Variable | Uso |
 |----------|-----|
-| `YOUTUBE_API_KEY` | Videos últimas 12h |
 | `FIRMS_MAP_KEY` | Incendios NASA FIRMS |
 | `REDIS_URL` | Caché compartida |
 | `ENABLE_SOCIAL_SCRAPERS` | Fallback RRSS experimental (off) |
@@ -51,4 +50,4 @@ docs/            Fuentes e implementación técnica
 
 ## Despliegue (Render)
 
-El archivo `render.yaml` configura un Web Service Node. Conectar el repo en [Render](https://dashboard.render.com), desplegar el Blueprint y añadir secretos (`YOUTUBE_API_KEY`, etc.) en Environment.
+El archivo `render.yaml` configura un Web Service Node. Conectar el repo en [Render](https://dashboard.render.com), desplegar el Blueprint y añadir secretos (`FIRMS_MAP_KEY`, etc.) en Environment.

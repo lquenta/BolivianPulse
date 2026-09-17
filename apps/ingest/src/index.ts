@@ -1,9 +1,8 @@
-import { persistBundle } from "./lib/store";
 import { pollEconomy } from "./pollers/economy";
 import { pollHazards } from "./pollers/hazards";
-import { pollMedia } from "./pollers/media";
 import { pollNews } from "./pollers/news";
 import { pollSocialExperimental } from "./pollers/social-experimental";
+import { persistBundle } from "./lib/store";
 
 let running = false;
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -23,21 +22,18 @@ export async function runIngestCycle() {
   running = true;
   cycle += 1;
   try {
-    const tasks: Array<Promise<void>> = [
+    await Promise.all([
       tick("economy", pollEconomy),
       tick("news", pollNews),
       tick("hazards", pollHazards),
-      tick("media", pollMedia),
       tick("social", pollSocialExperimental),
-    ];
-    // GDELT is inside news; news already runs. Soften: every 3rd cycle skip heavy news extras via env later.
+    ]);
     if (cycle % 3 === 0) {
       // reserved for heavier adapters
     }
-    await Promise.all(tasks);
     const bundle = await persistBundle();
     console.log(
-      `[ingest] bundle @ ${bundle.generatedAt} events=${bundle.events.length} ticker=${bundle.ticker.length} layers=${bundle.mapLayers.length}`
+      `[ingest] bundle @ ${bundle.generatedAt} events=${bundle.events.length} ticker=${bundle.ticker.length} layers=${bundle.mapLayers.length} weather=${bundle.weather.length}`
     );
   } finally {
     running = false;

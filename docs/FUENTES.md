@@ -15,7 +15,6 @@ Cadencias son del **poller al endpoint**. La UI refresca cada 15–30s vía SSE 
 | GDELT DOC | `api.gdeltproject.org/api/v2/doc/doc` | 30s | Menciones Bolivia |
 | ReliefWeb | `api.reliefweb.int/v1/reports` | 30s | Humanitario |
 | NASA FIRMS | area CSV API | 60s | Requiere `FIRMS_MAP_KEY` |
-| YouTube Data API | search.list | 60s | Requiere `YOUTUBE_API_KEY` |
 
 ## Tier B — RSS / noticias
 

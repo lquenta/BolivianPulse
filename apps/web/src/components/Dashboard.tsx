@@ -9,7 +9,6 @@ import { EconomyPanel } from "@/components/EconomyPanel";
 import { EventsFeed } from "@/components/EventsFeed";
 import { DomainPie } from "@/components/DomainPie";
 import { WeatherPanel } from "@/components/WeatherPanel";
-import { VideoPanel } from "@/components/VideoPanel";
 import { SourceHealthPanel } from "@/components/SourceHealthPanel";
 import { HazardsBars } from "@/components/HazardsBars";
 import { TopicIndicators } from "@/components/TopicIndicators";
@@ -19,7 +18,6 @@ import { LoadingScreen, RefreshPill } from "@/components/LoadingScreen";
 
 export function Dashboard() {
   const { bundle, loading, refreshing, connected, error } = useDashboardStream();
-  const [tvWall, setTvWall] = useState(false);
   const [clock, setClock] = useState("");
 
   useEffect(() => {
@@ -39,11 +37,6 @@ export function Dashboard() {
     return () => clearInterval(id);
   }, []);
 
-  useEffect(() => {
-    document.body.classList.toggle("tv-wall", tvWall);
-    return () => document.body.classList.remove("tv-wall");
-  }, [tvWall]);
-
   if (loading) {
     return (
       <div className="dash-shell mx-auto max-w-[1680px] p-4">
@@ -53,11 +46,7 @@ export function Dashboard() {
   }
 
   return (
-    <div
-      className={`dash-shell mx-auto flex min-h-screen max-w-[1680px] flex-col gap-3 p-3 sm:gap-3.5 sm:p-4 ${
-        tvWall ? "h-screen max-w-none overflow-hidden" : ""
-      }`}
-    >
+    <div className="dash-shell mx-auto flex min-h-screen max-w-[1680px] flex-col gap-3 p-3 sm:gap-3.5 sm:p-4">
       <HeaderBar
         connected={connected}
         official={bundle.kpis.official}
@@ -66,13 +55,11 @@ export function Dashboard() {
         health={bundle.sourceHealth}
         clock={clock}
         generatedAt={bundle.generatedAt}
-        tvWall={tvWall}
-        onToggleTv={() => setTvWall((v) => !v)}
         refreshing={refreshing}
       />
 
       <SoftSection updating={refreshing} label="Actualizando titulares…">
-        <NewsTicker items={bundle.ticker} dual={tvWall} />
+        <NewsTicker items={bundle.ticker} />
       </SoftSection>
 
       {error && (
@@ -123,10 +110,6 @@ export function Dashboard() {
           </SoftSection>
         </div>
       </div>
-
-      <SoftSection updating={refreshing} label="Actualizando media…">
-        <VideoPanel videos={bundle.videos} />
-      </SoftSection>
 
       <footer className="flex flex-wrap items-center justify-center gap-3 pb-1 text-center text-[0.68rem] tracking-wide text-[var(--faint)]">
         <span>

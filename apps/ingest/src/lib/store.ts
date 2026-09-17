@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
+  dedupeByHeadline,
   detectUrgency,
   inferGeoFromText,
   summarizeTopics,
@@ -153,8 +154,10 @@ export function setHealth(health: SourceHealth) {
 }
 
 export function buildTicker(limit = 60): TickerItem[] {
-  const events = [...state.events.values()].sort(
-    (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+  const events = dedupeByHeadline(
+    [...state.events.values()].sort(
+      (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+    )
   );
   return events.slice(0, limit).map((ev) => ({
     id: ev.id,
@@ -224,8 +227,10 @@ function syncNewsMapLayer(events: EventItem[]) {
 }
 
 export function buildBundle(): DashboardBundle {
-  const events = [...state.events.values()].sort(
-    (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+  const events = dedupeByHeadline(
+    [...state.events.values()].sort(
+      (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+    )
   );
   syncNewsMapLayer(events);
   return {
@@ -234,7 +239,7 @@ export function buildBundle(): DashboardBundle {
     events: events.slice(0, 200),
     ticker: buildTicker(),
     mapLayers: state.mapLayers,
-    videos: state.videos,
+    videos: [],
     weather: state.weather,
     domainCounts: domainCounts(),
     topicIndicators: summarizeTopics(events),

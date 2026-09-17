@@ -14,8 +14,6 @@ export function HeaderBar({
   health,
   clock,
   generatedAt,
-  tvWall,
-  onToggleTv,
   refreshing = false,
 }: {
   connected: boolean;
@@ -25,8 +23,6 @@ export function HeaderBar({
   health: SourceHealth[];
   clock: string;
   generatedAt?: string;
-  tvWall: boolean;
-  onToggleTv: () => void;
   refreshing?: boolean;
 }) {
   const mounted = useMounted();
@@ -79,27 +75,15 @@ export function HeaderBar({
               </span>
             )}
           </div>
-          <div
-            className="text-[1.65rem] font-semibold leading-none tracking-tight sm:text-2xl"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
+          <h1 className="font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight sm:text-2xl">
             Bolivia Pulse
-          </div>
-          <div className="mt-1 text-xs text-[var(--muted)]">
-            Economía · Política · Seguridad · Sociedad · Clima
-          </div>
+          </h1>
+          <p className="text-[0.72rem] text-[var(--muted)]">
+            Monitoreo casi en tiempo real · {mounted ? clock : "—"}
+          </p>
         </div>
 
-        <div className="ml-auto flex flex-wrap items-stretch gap-2 sm:gap-3">
-          <div className="rounded-[12px] border border-[var(--line)] bg-[var(--bg-elev)]/70 px-3 py-2">
-            <div className="text-[0.62rem] uppercase tracking-[0.12em] text-[var(--muted)]">
-              La Paz
-            </div>
-            <div className="font-medium tabular-nums tracking-tight" suppressHydrationWarning>
-              {mounted ? clock || "—" : "—"}
-            </div>
-          </div>
-
+        <div className="ml-auto flex flex-wrap items-center gap-2">
           <div className="rounded-[12px] border border-[var(--line)] bg-[var(--bg-elev)]/70 px-3 py-2">
             <div className="text-[0.62rem] uppercase tracking-[0.12em] text-[var(--muted)]">
               Oficial
@@ -131,10 +115,6 @@ export function HeaderBar({
               </div>
             </div>
           </div>
-
-          <button type="button" onClick={onToggleTv} className="btn btn-accent self-center">
-            {tvWall ? "Salir TV" : "TV wall"}
-          </button>
         </div>
       </div>
     </header>

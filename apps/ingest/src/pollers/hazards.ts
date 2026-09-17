@@ -138,36 +138,58 @@ async function pollFirms() {
 }
 
 async function pollWeather() {
-  const weather: WeatherCity[] = [];
-  const res = await withCircuit("open-meteo", async () => {
-    const results: WeatherCity[] = [];
-    for (const city of BOLIVIA_CITIES) {
-      const wxUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,weather_code,wind_speed_10m&timezone=America%2FLa_Paz`;
-      const wx = await fetchJson<{
-        current?: { temperature_2m?: number; weather_code?: number; wind_speed_10m?: number };
-      }>(wxUrl);
-      let aqi: number | undefined;
+  const res = await withCircuit(
+    "open-meteo",
+    async () => {
+      const lats = BOLIVIA_CITIES.map((c) => c.lat).join(",");
+      const lons = BOLIVIA_CITIES.map((c) => c.lon).join(",");
+
+      type WxPayload = {
+        latitude?: number;
+        longitude?: number;
+        current?: {
+          temperature_2m?: number;
+          weather_code?: number;
+          wind_speed_10m?: number;
+        };
+      };
+
+      const wxRaw = await fetchJson<WxPayload | WxPayload[]>(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,weather_code,wind_speed_10m&timezone=America%2FLa_Paz`,
+        20_000
+      );
+      const wxList = Array.isArray(wxRaw) ? wxRaw : [wxRaw];
+
+      let aqList: Array<{ current?: { us_aqi?: number } }> = [];
       try {
-        const aq = await fetchJson<{
-          current?: { us_aqi?: number };
-        }>(
-          `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&current=us_aqi`
+        const aqRaw = await fetchJson<
+          { current?: { us_aqi?: number } } | Array<{ current?: { us_aqi?: number } }>
+        >(
+          `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lats}&longitude=${lons}&current=us_aqi`,
+          20_000
         );
-        aqi = aq.current?.us_aqi;
+        aqList = Array.isArray(aqRaw) ? aqRaw : [aqRaw];
       } catch {
-        /* optional */
+        /* AQI optional */
       }
-      results.push({
+
+      const now = new Date().toISOString();
+      const rows: WeatherCity[] = BOLIVIA_CITIES.map((city, i) => ({
         ...city,
-        tempC: wx.current?.temperature_2m,
-        weatherCode: wx.current?.weather_code,
-        windKmh: wx.current?.wind_speed_10m,
-        aqi,
-        updatedAt: new Date().toISOString(),
-      });
-    }
-    return results;
-  });
+        tempC: wxList[i]?.current?.temperature_2m,
+        weatherCode: wxList[i]?.current?.weather_code,
+        windKmh: wxList[i]?.current?.wind_speed_10m,
+        aqi: aqList[i]?.current?.us_aqi,
+        updatedAt: now,
+      }));
+
+      if (!rows.some((r) => r.tempC !== undefined)) {
+        throw new Error("Open-Meteo sin temperaturas");
+      }
+      return rows;
+    },
+    { threshold: 3, coolDownMs: 45_000 }
+  );
 
   if (res.ok) {
     setWeather(res.value);
@@ -189,7 +211,6 @@ async function pollWeather() {
       cadenceSec: 120,
     });
   }
-  void weather;
 }
 
 async function pollGdacs() {

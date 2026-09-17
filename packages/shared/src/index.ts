@@ -140,7 +140,6 @@ export type DashboardBundle = {
   domainCounts: Record<Domain, number>;
   topicIndicators: TopicIndicator[];
   sourceHealth: SourceHealth[];
-  tvWall?: boolean;
 };
 
 /** Bounding box roughly covering Bolivia */
@@ -451,6 +450,59 @@ export function hashId(...parts: string[]): string {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
   return `e_${Math.abs(h).toString(36)}`;
+}
+
+/** Collapse near-identical headlines for dedupe (strip accents, trailing " - fuente"). */
+export function normalizeHeadline(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/\s*[-–|·]\s*[^-–|·]{1,48}$/u, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Higher = preferred when two stories share the same normalized title. */
+export function sourcePrecedence(source: string): number {
+  const s = source.toLowerCase();
+  if (s.startsWith("los tiempos")) return 100;
+  if (/(unitel|red uno|atb|bolivia tv|rtp|pat|erbol|abi)/.test(s)) return 85;
+  if (/(correo del sur|el deber|opinion|página siete|pagina siete|oxígeno|oxigeno)/.test(s))
+    return 80;
+  if (s.startsWith("google news")) return 35;
+  if (/(gdelt|reliefweb)/.test(s)) return 15;
+  if (/(usgs|gdacs|firms|opensky)/.test(s)) return 10;
+  return 55;
+}
+
+export function dedupeByHeadline<
+  T extends { title: string; source: string; occurredAt: string },
+>(items: T[]): T[] {
+  const best = new Map<string, T>();
+  for (const item of items) {
+    const key = normalizeHeadline(item.title);
+    if (!key) continue;
+    const prev = best.get(key);
+    if (!prev) {
+      best.set(key, item);
+      continue;
+    }
+    const nextScore = sourcePrecedence(item.source);
+    const prevScore = sourcePrecedence(prev.source);
+    if (nextScore > prevScore) {
+      best.set(key, item);
+      continue;
+    }
+    if (
+      nextScore === prevScore &&
+      new Date(item.occurredAt).getTime() > new Date(prev.occurredAt).getTime()
+    ) {
+      best.set(key, item);
+    }
+  }
+  return [...best.values()];
 }
 
 export function inBolivia(lat: number, lon: number): boolean {

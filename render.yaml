@@ -26,4 +26,4 @@ services:
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
       # Opcionales — definir en el Dashboard de Render (Environment):
-      # YOUTUBE_API_KEY, FIRMS_MAP_KEY, REDIS_URL
+      # FIRMS_MAP_KEY, REDIS_URL

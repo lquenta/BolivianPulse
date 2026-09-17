@@ -4,13 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { TickerItem } from "@bo-dash/shared";
 import { RelativeTime } from "@/hooks/useClientTime";
 
-export function NewsTicker({
-  items,
-  dual = false,
-}: {
-  items: TickerItem[];
-  dual?: boolean;
-}) {
+export function NewsTicker({ items }: { items: TickerItem[] }) {
   const safe = useMemo(() => (items.length ? items : []), [items]);
   const [paused, setPaused] = useState(false);
   const [idx, setIdx] = useState(0);
@@ -90,12 +84,6 @@ export function NewsTicker({
           </a>
         </div>
       </div>
-      {dual && (
-        <div className="panel px-3 py-2 text-xs text-[var(--muted)]">
-          TV wall · franja inferior ·{" "}
-          {safe.filter((t) => t.urgency === "breaking").length} breaking
-        </div>
-      )}
     </div>
   );
 }

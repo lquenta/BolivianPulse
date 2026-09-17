@@ -54,8 +54,10 @@ El clasificador `classifyDomain` y el matcher `matchTopics` operan sobre título
 1. **economy** — paralelo.bo + tipo de cambio oficial (BCB vía proxy público)
 2. **news** — RSS multi-medio + agregadores (Google News temáticos, GDELT, ReliefWeb)
 3. **hazards** — USGS, FIRMS, GDACS, OpenSky, capas de mapa
-4. **media** — YouTube Data API (si hay `YOUTUBE_API_KEY`)
+4. **hazards** — USGS, FIRMS, Open-Meteo (clima/AQI), GDACS, OpenSky
 5. **social** — stub experimental; solo si `ENABLE_SOCIAL_SCRAPERS=true`
+
+Titulares y feed pasan por `dedupeByHeadline`: misma noticia (título normalizado) conserva una sola entrada según precedencia de fuente (medios locales > agregadores).
 
 Al finalizar: `persistBundle()` escribe `data/bundle.json` y, si existe `REDIS_URL`, también la clave `dashboard:bundle`.
 
@@ -113,7 +115,7 @@ Durante refresh el contenido **permanece visible**; solo aparece un badge con sp
 | `EconomyPanel` | Oficial / paralelo / brecha + series ECharts |
 | `DomainPie` / `HazardsBars` | Distribución editorial y sismos/fuegos |
 | `EventsFeed` | Listado filtrable 12h |
-| `WeatherPanel` / `VideoPanel` / `SourceHealthPanel` | Clima, media, salud de fuentes |
+| `WeatherPanel` / `SourceHealthPanel` | Clima/AQI y salud de fuentes |
 
 Layout desktop: fila mapa | economía (misma altura); debajo dominio + hazards a ancho completo; luego feed y paneles secundarios.
 
@@ -140,7 +142,6 @@ Variables relevantes (ver `.env.example`):
 |----------|-------------|
 | `ENABLE_INGEST` | Activa loop en instrumentation |
 | `INGEST_INTERVAL_MS` | Periodo del ciclo (ms) |
-| `YOUTUBE_API_KEY` | Videos 12h |
 | `FIRMS_MAP_KEY` | Incendios NASA FIRMS |
 | `REDIS_URL` / `DATABASE_URL` | Infra opcional |
 | `ENABLE_SOCIAL_SCRAPERS` | Adaptadores experimentales (off) |
