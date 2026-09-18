@@ -1,16 +1,17 @@
 "use client";
 
-import type { MapLayerPoint } from "@bo-dash/shared";
+import type { MapLayer, MapLayerPoint } from "@bo-dash/shared";
 
-export const MAP_LAYERS: Array<MapLayerPoint["layer"]> = [
-  "sismos",
-  "incendios",
-  "alertas",
-  "aviones",
-  "eventos",
+export const MAP_LAYERS: Array<{ key: MapLayer; label: string }> = [
+  { key: "sismos", label: "Sismos" },
+  { key: "incendios", label: "Incendios" },
+  { key: "alertas", label: "Alertas" },
+  { key: "aviones", label: "Aviones" },
+  { key: "eventos", label: "Eventos" },
+  { key: "clima", label: "Clima" },
 ];
 
-export type LayerEnabled = Record<MapLayerPoint["layer"], boolean>;
+export type LayerEnabled = Record<MapLayer, boolean>;
 
 export function defaultLayerEnabled(): LayerEnabled {
   return {
@@ -19,6 +20,7 @@ export function defaultLayerEnabled(): LayerEnabled {
     alertas: true,
     aviones: true,
     eventos: true,
+    clima: true,
   };
 }
 
@@ -29,11 +31,11 @@ export function LayerRail({
 }: {
   enabled: LayerEnabled;
   points: MapLayerPoint[];
-  onToggle: (layer: MapLayerPoint["layer"]) => void;
+  onToggle: (layer: MapLayer) => void;
 }) {
   const counts = MAP_LAYERS.reduce(
-    (acc, layer) => {
-      acc[layer] = points.filter((p) => p.layer === layer).length;
+    (acc, { key }) => {
+      acc[key] = points.filter((p) => p.layer === key).length;
       return acc;
     },
     {} as Record<string, number>
@@ -43,16 +45,16 @@ export function LayerRail({
     <aside className="ops-panel ops-rail" aria-label="Capas del mapa">
       <h2 className="ops-rail__title">Capas</h2>
       <div className="ops-rail__list">
-        {MAP_LAYERS.map((layer) => (
+        {MAP_LAYERS.map(({ key, label }) => (
           <button
-            key={layer}
+            key={key}
             type="button"
-            className={`ops-rail__btn ${enabled[layer] ? "is-on" : ""}`}
-            onClick={() => onToggle(layer)}
-            aria-pressed={enabled[layer]}
+            className={`ops-rail__btn ${enabled[key] ? "is-on" : ""}`}
+            onClick={() => onToggle(key)}
+            aria-pressed={enabled[key]}
           >
-            <span>{layer}</span>
-            <span className="ops-rail__count">{counts[layer] ?? 0}</span>
+            <span>{label}</span>
+            <span className="ops-rail__count">{counts[key] ?? 0}</span>
           </button>
         ))}
       </div>

@@ -82,9 +82,17 @@ export type WeatherCity = {
   updatedAt?: string;
 };
 
+export type MapLayer =
+  | "sismos"
+  | "incendios"
+  | "eventos"
+  | "aviones"
+  | "alertas"
+  | "clima";
+
 export type MapLayerPoint = {
   id: string;
-  layer: "sismos" | "incendios" | "eventos" | "aviones" | "alertas";
+  layer: MapLayer;
   lat: number;
   lon: number;
   label: string;
@@ -171,6 +179,26 @@ export const BOLIVIA_CITIES: Array<{
   { name: "Tarija", dept: "Tarija", lat: -21.53, lon: -64.73 },
   { name: "Trinidad", dept: "Beni", lat: -14.83, lon: -64.9 },
   { name: "Cobija", dept: "Pando", lat: -11.03, lon: -68.77 },
+  { name: "Montero", dept: "Santa Cruz", lat: -17.34, lon: -63.25 },
+  { name: "Warnes", dept: "Santa Cruz", lat: -17.5, lon: -63.16 },
+  { name: "Quillacollo", dept: "Cochabamba", lat: -17.4, lon: -66.28 },
+  { name: "Sacaba", dept: "Cochabamba", lat: -17.4, lon: -66.04 },
+  { name: "Viacha", dept: "La Paz", lat: -16.65, lon: -68.3 },
+  { name: "Riberalta", dept: "Beni", lat: -11.01, lon: -66.09 },
+  { name: "Guayaramerín", dept: "Beni", lat: -10.82, lon: -65.36 },
+  { name: "Yacuiba", dept: "Tarija", lat: -22.02, lon: -63.68 },
+  { name: "Villazón", dept: "Potosí", lat: -22.09, lon: -65.6 },
+  { name: "Uyuni", dept: "Potosí", lat: -20.46, lon: -66.82 },
+  { name: "Tupiza", dept: "Potosí", lat: -21.45, lon: -65.72 },
+  { name: "Camiri", dept: "Santa Cruz", lat: -20.04, lon: -63.52 },
+  { name: "Puerto Suárez", dept: "Santa Cruz", lat: -18.96, lon: -57.8 },
+  { name: "San Ignacio de Velasco", dept: "Santa Cruz", lat: -16.37, lon: -60.96 },
+  { name: "Rurrenabaque", dept: "Beni", lat: -14.44, lon: -67.53 },
+  { name: "Copacabana", dept: "La Paz", lat: -16.17, lon: -69.09 },
+  { name: "Patacamaya", dept: "La Paz", lat: -17.24, lon: -67.92 },
+  { name: "Llallagua", dept: "Potosí", lat: -18.42, lon: -66.58 },
+  { name: "Punata", dept: "Cochabamba", lat: -17.55, lon: -65.83 },
+  { name: "Bermejo", dept: "Tarija", lat: -22.73, lon: -64.34 },
 ];
 
 export const BREAKING_KEYWORDS = [
@@ -418,12 +446,31 @@ export function inferGeoFromText(text: string): { lat: number; lon: number; plac
   const aliases: Array<{ k: string; lat: number; lon: number; place: string }> = [
     { k: "el alto", lat: -16.51, lon: -68.17, place: "El Alto" },
     { k: "la paz", lat: -16.5, lon: -68.15, place: "La Paz" },
+    { k: "santa cruz de la sierra", lat: -17.78, lon: -63.18, place: "Santa Cruz" },
     { k: "santa cruz", lat: -17.78, lon: -63.18, place: "Santa Cruz" },
     { k: "cochabamba", lat: -17.39, lon: -66.16, place: "Cochabamba" },
     { k: "montero", lat: -17.34, lon: -63.25, place: "Montero" },
     { k: "warnes", lat: -17.5, lon: -63.16, place: "Warnes" },
     { k: "yacuiba", lat: -22.02, lon: -63.68, place: "Yacuiba" },
     { k: "riberalta", lat: -11.01, lon: -66.09, place: "Riberalta" },
+    { k: "guayaramerin", lat: -10.82, lon: -65.36, place: "Guayaramerín" },
+    { k: "guayaramerín", lat: -10.82, lon: -65.36, place: "Guayaramerín" },
+    { k: "rurrenabaque", lat: -14.44, lon: -67.53, place: "Rurrenabaque" },
+    { k: "chapare", lat: -16.9, lon: -65.4, place: "Chapare" },
+    { k: "yapacani", lat: -17.4, lon: -63.88, place: "Yapacani" },
+    { k: "yapacaní", lat: -17.4, lon: -63.88, place: "Yapacani" },
+    { k: "ascension de guarayos", lat: -15.9, lon: -63.18, place: "Ascensión de Guarayos" },
+    { k: "san julian", lat: -17.3, lon: -62.87, place: "San Julián" },
+    { k: "san julián", lat: -17.3, lon: -62.87, place: "San Julián" },
+    { k: "desaguadero", lat: -16.57, lon: -69.04, place: "Desaguadero" },
+    { k: "alto beni", lat: -15.5, lon: -67.4, place: "Alto Beni" },
+    { k: "ixiamas", lat: -13.77, lon: -68.13, place: "Ixiamas" },
+    { k: "charagua", lat: -19.79, lon: -63.2, place: "Charagua" },
+    { k: "robore", lat: -18.33, lon: -59.76, place: "Roboré" },
+    { k: "roboré", lat: -18.33, lon: -59.76, place: "Roboré" },
+    { k: "beni", lat: -14.83, lon: -64.9, place: "Trinidad" },
+    { k: "pando", lat: -11.03, lon: -68.77, place: "Cobija" },
+    { k: "chuquisaca", lat: -19.03, lon: -65.26, place: "Sucre" },
   ];
   for (const a of aliases) {
     if (t.includes(a.k)) return { lat: a.lat, lon: a.lon, place: a.place };

@@ -223,7 +223,7 @@ function syncNewsMapLayer(events: EventItem[]) {
     if (seen.has(key)) continue;
     seen.add(key);
     unique.push(p);
-    if (unique.length >= 80) break;
+    if (unique.length >= 120) break;
   }
   setMapLayer("eventos", unique);
 }

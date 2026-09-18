@@ -67,44 +67,50 @@ function buildLiveCards(bundle: DashboardBundle): LiveCard[] {
   }
 
   const usgs = health.get("usgs");
-  if (isLive(usgs)) {
+  const emsc = health.get("emsc");
+  if (isLive(usgs) || isLive(emsc)) {
     const n = layerCount(points, "sismos");
+    const src = isLive(usgs) ? usgs! : emsc!;
     cards.push({
       id: "quakes",
       domain: "clima",
       label: "Sismos",
       value: String(n),
-      hint: "USGS bbox BO",
-      source: "usgs",
-      cadenceSec: usgs.cadenceSec,
+      hint: "USGS + EMSC",
+      source: src.source,
+      cadenceSec: src.cadenceSec,
     });
   }
 
+  const inpe = health.get("inpe-queimadas");
   const firms = health.get("firms");
-  if (isLive(firms)) {
+  if (isLive(inpe) || isLive(firms)) {
     const n = layerCount(points, "incendios");
+    const src = isLive(inpe) ? inpe! : firms!;
     cards.push({
       id: "fires",
       domain: "seguridad",
       label: "Focos fuego",
       value: String(n),
-      hint: "NASA FIRMS",
-      source: "firms",
-      cadenceSec: firms.cadenceSec,
+      hint: isLive(inpe) ? "INPE Queimadas" : "NASA FIRMS",
+      source: src.source,
+      cadenceSec: src.cadenceSec,
     });
   }
 
   const gdacs = health.get("gdacs");
-  if (isLive(gdacs)) {
+  const eonet = health.get("eonet");
+  if (isLive(gdacs) || isLive(eonet)) {
     const n = layerCount(points, "alertas");
+    const src = isLive(gdacs) ? gdacs! : eonet!;
     cards.push({
       id: "alerts",
       domain: "seguridad",
       label: "Alertas",
       value: String(n),
-      hint: "GDACS",
-      source: "gdacs",
-      cadenceSec: gdacs.cadenceSec,
+      hint: "GDACS + EONET",
+      source: src.source,
+      cadenceSec: src.cadenceSec,
     });
   }
 
