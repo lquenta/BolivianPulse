@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import {
-  sourceFaviconUrl,
+  displayHeadline,
+  isRedundantSummary,
   summarizeTopics,
   type EventItem,
   type TopicIndicator,
@@ -39,43 +40,25 @@ function pickTopics(items: TopicIndicator[], events: EventItem[]): TopicIndicato
   return items ?? [];
 }
 
-/** Real article image if present; otherwise publisher favicon (never fabricated art). */
+/** Real article image only — never favicon / letter placeholder. */
 function PulseMedia({ topic, large }: { topic: TopicIndicator; large?: boolean }) {
-  const [brokenImg, setBrokenImg] = useState(false);
-  const [brokenFav, setBrokenFav] = useState(false);
-  const articleImg = !brokenImg ? topic.lastImageUrl : undefined;
-  const favicon =
-    !articleImg && !brokenFav
-      ? sourceFaviconUrl({
-          source: topic.lastSource,
-          title: topic.lastTitle,
-          url: topic.lastUrl,
-        })
-      : undefined;
-  const src = articleImg || favicon;
+  const [broken, setBroken] = useState(false);
+  const articleImg = !broken ? topic.lastImageUrl : undefined;
+  if (!articleImg) return null;
 
   return (
     <div
-      className={`pulse-media ${large ? "pulse-media--lg" : ""} ${articleImg ? "is-photo" : "is-favicon"} domain-thumb--${topic.domain}`}
+      className={`pulse-media pulse-media--right ${large ? "pulse-media--lg" : ""} is-photo domain-thumb--${topic.domain}`}
       aria-hidden
     >
-      {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt=""
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={() => {
-            if (articleImg) setBrokenImg(true);
-            else setBrokenFav(true);
-          }}
-        />
-      ) : (
-        <span className="pulse-media__fallback">
-          {(topic.lastSource || topic.label || topic.domain).slice(0, 1).toUpperCase()}
-        </span>
-      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={articleImg}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setBroken(true)}
+      />
     </div>
   );
 }
@@ -123,6 +106,11 @@ export function TopicIndicators({
             const intensity = t.count > 0 ? t.count / max : 0.08;
             const sizeClass = tileSize(t.count, max, i);
             const large = sizeClass.includes("--xl") || sizeClass.includes("--lg");
+            const excerpt = t.lastSummary && !isRedundantSummary(t.lastTitle ?? "", t.lastSummary)
+              ? t.lastSummary
+              : t.lastTitle
+                ? displayHeadline(t.lastTitle)
+                : undefined;
             return (
               <a
                 key={t.key}
@@ -143,44 +131,37 @@ export function TopicIndicators({
                   }}
                 />
                 <div className="pulse-tile__top">
-                  <div className="flex min-w-0 flex-1 items-start gap-2.5">
-                    <PulseMedia topic={t} large={large} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className={`domain-dot mt-1.5 domain-${t.domain}`} />
-                        <span className="kpi pulse-count tabular-nums">{t.count}</span>
-                      </div>
-                      <div className="pulse-label mt-1 font-semibold tracking-tight">{t.label}</div>
-                      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[0.62rem] uppercase tracking-[0.1em] text-[var(--faint)]">
-                        <span>{t.domain}</span>
-                        {t.lastSource && (
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className={`domain-dot mt-1.5 domain-${t.domain}`} />
+                      <span className="kpi pulse-count tabular-nums">{t.count}</span>
+                    </div>
+                    <div className="pulse-label mt-1 font-semibold tracking-tight">{t.label}</div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[0.62rem] uppercase tracking-[0.1em] text-[var(--faint)]">
+                      <span>{t.domain}</span>
+                      {t.lastSource && (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span className="normal-case tracking-normal text-[var(--muted)]">
+                            {t.lastSource.replace(/^Google News\s+/i, "")}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {excerpt && (
+                      <div className="pulse-excerpt mt-1.5 line-clamp-2 text-[0.7rem] leading-snug text-[var(--muted)]">
+                        {excerpt}
+                        {t.lastAt && (
                           <>
-                            <span aria-hidden>·</span>
-                            <span className="normal-case tracking-normal text-[var(--muted)]">
-                              {t.lastSource.replace(/^Google News\s+/i, "")}
-                            </span>
+                            {" · "}
+                            <RelativeTime iso={t.lastAt} />
                           </>
                         )}
                       </div>
-                    </div>
-                  </div>
-                </div>
-                {t.lastSummary ? (
-                  <div className="pulse-summary mt-2 line-clamp-2 text-[0.68rem] leading-snug text-[var(--muted)]">
-                    {t.lastSummary}
-                  </div>
-                ) : null}
-                {t.lastTitle && (
-                  <div className="pulse-excerpt mt-1.5 line-clamp-2 text-[0.7rem] leading-snug text-[var(--muted)]">
-                    {t.lastTitle}
-                    {t.lastAt && (
-                      <>
-                        {" · "}
-                        <RelativeTime iso={t.lastAt} />
-                      </>
                     )}
                   </div>
-                )}
+                  <PulseMedia topic={t} large={large} />
+                </div>
               </a>
             );
           })}

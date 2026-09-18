@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import {
-  sourceFaviconUrl,
+  displayHeadline,
+  isRedundantSummary,
   type Domain,
   type EventItem,
 } from "@bo-dash/shared";
@@ -30,36 +31,22 @@ const DOMAIN_LABEL: Record<Domain | "todos", string> = {
   media: "Media",
 };
 
+/** Article photo only (no favicon placeholder). */
 function FeedThumb({ ev }: { ev: EventItem }) {
   const [broken, setBroken] = useState(false);
   const photo = !broken ? ev.media?.thumb || ev.media?.url : undefined;
-  const fav =
-    !photo
-      ? sourceFaviconUrl({
-          source: ev.source,
-          title: ev.title,
-          url: ev.sourceUrl,
-        })
-      : undefined;
-  const src = photo || fav;
+  if (!photo) return null;
 
   return (
-    <div
-      className={`feed-card__media domain-thumb--${ev.domain} ${photo ? "is-photo" : "is-favicon"}`}
-      aria-hidden
-    >
-      {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt=""
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={() => setBroken(true)}
-        />
-      ) : (
-        <span>{ev.domain.slice(0, 1).toUpperCase()}</span>
-      )}
+    <div className={`feed-card__media is-photo domain-thumb--${ev.domain}`} aria-hidden>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={photo}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setBroken(true)}
+      />
     </div>
   );
 }
@@ -128,35 +115,40 @@ export function EventsFeed({ events }: { events: EventItem[] }) {
       </label>
 
       <div className="feed-list min-h-0 flex-1 overflow-y-auto pr-1">
-        {filtered.map((ev, i) => (
-          <a
-            key={ev.id}
-            href={ev.sourceUrl || "#"}
-            target="_blank"
-            rel="noreferrer"
-            className={`feed-card feed-card--${ev.domain}`}
-            style={{ animationDelay: `${Math.min(i, 12) * 0.03}s` }}
-          >
-            <FeedThumb ev={ev} />
-            <div className="feed-card__body">
-              <div className="feed-card__meta">
-                <span className={`domain-pill domain-pill--${ev.domain}`}>
-                  {ev.domain}
-                </span>
-                <span className="truncate text-[0.68rem] text-[var(--muted)]">
-                  {ev.source.replace(/^Google News\s+/i, "")}
-                </span>
-                <span className="ml-auto shrink-0 tabular-nums text-[0.65rem] text-[var(--faint)]">
-                  <RelativeTime iso={ev.occurredAt} />
-                </span>
+        {filtered.map((ev, i) => {
+          const title = displayHeadline(ev.title);
+          const summary =
+            ev.summary && !isRedundantSummary(ev.title, ev.summary) ? ev.summary : undefined;
+          return (
+            <a
+              key={ev.id}
+              href={ev.sourceUrl || "#"}
+              target="_blank"
+              rel="noreferrer"
+              className={`feed-card feed-card--${ev.domain}`}
+              style={{ animationDelay: `${Math.min(i, 12) * 0.03}s` }}
+            >
+              <div className="feed-card__body">
+                <div className="feed-card__meta">
+                  <span className={`domain-pill domain-pill--${ev.domain}`}>
+                    {ev.domain}
+                  </span>
+                  <span className="truncate text-[0.68rem] text-[var(--muted)]">
+                    {ev.source.replace(/^Google News\s+/i, "")}
+                  </span>
+                  <span className="ml-auto shrink-0 tabular-nums text-[0.65rem] text-[var(--faint)]">
+                    <RelativeTime iso={ev.occurredAt} />
+                  </span>
+                </div>
+                <div className="feed-card__title">{title}</div>
+                {summary && (
+                  <div className="feed-card__summary line-clamp-2">{summary}</div>
+                )}
               </div>
-              <div className="feed-card__title">{ev.title}</div>
-              {ev.summary && ev.summary !== ev.title && (
-                <div className="feed-card__summary line-clamp-2">{ev.summary}</div>
-              )}
-            </div>
-          </a>
-        ))}
+              <FeedThumb ev={ev} />
+            </a>
+          );
+        })}
         {!filtered.length && (
           <div className="py-10 text-center text-sm text-[var(--muted)]">Sin coincidencias.</div>
         )}

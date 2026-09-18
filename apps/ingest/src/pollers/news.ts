@@ -45,28 +45,56 @@ function asArray<T>(v: T | T[] | undefined): T[] {
 }
 
 function extractRssImage(item: Record<string, unknown>, html: string): string | undefined {
-  const enclosure = item.enclosure as Record<string, string> | undefined;
-  const encUrl = enclosure?.["@_url"] ?? enclosure?.url;
-  const encType = enclosure?.["@_type"] ?? enclosure?.type ?? "";
-  if (encUrl && (encType.startsWith("image") || /\.(jpe?g|png|webp|gif)(\?|$)/i.test(encUrl))) {
-    return encUrl;
+  const enclosure = item.enclosure as Record<string, string> | Array<Record<string, string>> | undefined;
+  for (const enc of asArray(enclosure)) {
+    const encUrl = enc?.["@_url"] ?? enc?.url;
+    const encType = enc?.["@_type"] ?? enc?.type ?? "";
+    if (encUrl && (encType.startsWith("image") || /\.(jpe?g|png|webp|gif)(\?|$)/i.test(encUrl))) {
+      return encUrl;
+    }
   }
 
   const mediaThumb = item["media:thumbnail"] as Record<string, string> | Array<Record<string, string>> | undefined;
-  const thumb = Array.isArray(mediaThumb) ? mediaThumb[0] : mediaThumb;
-  const thumbUrl = thumb?.["@_url"] ?? thumb?.url;
-  if (thumbUrl) return thumbUrl;
-
-  const mediaContent = item["media:content"] as Record<string, string> | Array<Record<string, string>> | undefined;
-  const media = Array.isArray(mediaContent) ? mediaContent[0] : mediaContent;
-  const mediaUrl = media?.["@_url"] ?? media?.url;
-  const mediaType = media?.["@_type"] ?? media?.type ?? "";
-  if (mediaUrl && (mediaType.startsWith("image") || mediaType === "" || /\.(jpe?g|png|webp|gif)(\?|$)/i.test(mediaUrl))) {
-    return mediaUrl;
+  for (const thumb of asArray(mediaThumb)) {
+    const thumbUrl = thumb?.["@_url"] ?? thumb?.url;
+    if (thumbUrl) return thumbUrl;
   }
 
-  const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-  return match?.[1];
+  const mediaContent = item["media:content"] as Record<string, string> | Array<Record<string, string>> | undefined;
+  for (const media of asArray(mediaContent)) {
+    const mediaUrl = media?.["@_url"] ?? media?.url;
+    const mediaType = media?.["@_type"] ?? media?.type ?? "";
+    const medium = media?.["@_medium"] ?? media?.medium ?? "";
+    if (
+      mediaUrl &&
+      (medium === "image" ||
+        mediaType.startsWith("image") ||
+        mediaType === "" ||
+        /\.(jpe?g|png|webp|gif)(\?|$)/i.test(mediaUrl))
+    ) {
+      return mediaUrl;
+    }
+  }
+
+  // Prefer larger img candidates from HTML description / content:encoded
+  const imgs = [...html.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)].map((m) => m[1]);
+  const og = html.match(/property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1]
+    ?? html.match(/content=["']([^"']+)["'][^>]+property=["']og:image["']/i)?.[1];
+  const candidates = [og, ...imgs].filter(Boolean) as string[];
+  for (const url of candidates) {
+    if (/favicon|sprite|logo|1x1|pixel|emoji|icon/i.test(url)) continue;
+    if (/^https?:\/\//i.test(url) || url.startsWith("//")) {
+      return url.startsWith("//") ? `https:${url}` : url;
+    }
+  }
+  return undefined;
+}
+
+function safeIsoDate(value: unknown, fallback: string): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return fallback;
+  const t = new Date(raw).getTime();
+  return Number.isFinite(t) ? new Date(t).toISOString() : fallback;
 }
 
 function enrichEvent(partial: Omit<EventItem, "tags" | "geo" | "urgency"> & Partial<EventItem>): EventItem {
@@ -97,7 +125,7 @@ function parseRss(xml: string, source: string): EventItem[] {
       const rawHtml = String(item.description ?? item.summary ?? item["content:encoded"] ?? "");
       const summary = rawHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 280);
       if (!title) return null;
-      const occurredAt = new Date(pub).toISOString();
+      const occurredAt = safeIsoDate(pub, now);
       const imageUrl = extractRssImage(item as Record<string, unknown>, rawHtml);
       return enrichEvent({
         id: hashId(source, link || title, occurredAt),
@@ -146,7 +174,105 @@ async function parseReliefWeb(): Promise<EventItem[]> {
   });
 }
 
-export async function pollNews() {
+function extractOgImage(html: string): string | undefined {
+  const patterns = [
+    /property=["']og:image:secure_url["'][^>]*content=["']([^"']+)["']/i,
+    /property=["']og:image["'][^>]*content=["']([^"']+)["']/i,
+    /content=["']([^"']+)["'][^>]*property=["']og:image["']/i,
+    /name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i,
+    /content=["']([^"']+)["'][^>]*name=["']twitter:image["']/i,
+  ];
+  for (const re of patterns) {
+    const m = html.match(re)?.[1]?.trim();
+    if (!m) continue;
+    const url = m.startsWith("//") ? `https:${m}` : m;
+    if (/^https?:\/\//i.test(url) && !/favicon|sprite|1x1|pixel/i.test(url)) return url;
+  }
+  return undefined;
+}
+
+const ogCache = new Map<string, string | null>();
+
+async function resolveCanonicalUrl(url: string): Promise<string | undefined> {
+  if (!/news\.google\.com/i.test(url)) return url;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 5000);
+    const res = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      signal: ctrl.signal,
+      headers: {
+        "User-Agent": "BoliviaPulseDashboard/1.0 (+local; research)",
+        Accept: "text/html",
+      },
+    });
+    clearTimeout(t);
+    const finalUrl = res.url;
+    if (finalUrl && !/news\.google\.com/i.test(finalUrl)) return finalUrl;
+    // Sometimes the article URL is in the HTML
+    const html = await res.text();
+    const canonical =
+      html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i)?.[1] ||
+      html.match(/href=["']([^"']+)["'][^>]+rel=["']canonical["']/i)?.[1];
+    if (canonical && /^https?:\/\//i.test(canonical) && !/news\.google\.com/i.test(canonical)) {
+      return canonical;
+    }
+  } catch {
+    /* ignore */
+  }
+  return undefined;
+}
+
+async function fetchArticleImage(articleUrl: string): Promise<string | undefined> {
+  const cached = ogCache.get(articleUrl);
+  if (cached !== undefined) return cached || undefined;
+  try {
+    const html = await fetchText(articleUrl, 7000);
+    const img = extractOgImage(html);
+    ogCache.set(articleUrl, img ?? null);
+    return img;
+  } catch {
+    ogCache.set(articleUrl, null);
+    return undefined;
+  }
+}
+
+/** Pull real article thumbs (og:image) when RSS has none — low concurrency. */
+async function enrichMissingImages(events: EventItem[], limit = 8): Promise<void> {
+  const score = (e: EventItem) => {
+    const s = e.source.toLowerCase();
+    if (s.startsWith("los tiempos")) return 0;
+    if (!s.startsWith("google news") && !s.startsWith("gdelt")) return 1;
+    if (s.startsWith("google news")) return 2;
+    return 3;
+  };
+  const candidates = events
+    .filter((e) => !e.media?.thumb && !e.media?.url && e.sourceUrl)
+    .sort((a, b) => score(a) - score(b) || new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+    .slice(0, limit);
+
+  const concurrency = 3;
+  for (let i = 0; i < candidates.length; i += concurrency) {
+    const batch = candidates.slice(i, i + concurrency);
+    await Promise.all(
+      batch.map(async (ev) => {
+        const canonical = await resolveCanonicalUrl(ev.sourceUrl!);
+        if (!canonical) return;
+        const img = await fetchArticleImage(canonical);
+        if (!img) return;
+        ev.media = { type: "image", url: img, thumb: img };
+        if (canonical !== ev.sourceUrl && !/news\.google\.com/i.test(canonical)) {
+          ev.sourceUrl = canonical;
+        }
+      })
+    );
+  }
+}
+
+export async function pollNews(opts: { enrichImages?: boolean } = {}) {
+  const enrichImages =
+    opts.enrichImages !== false && process.env.ENABLE_OG_ENRICH !== "false";
   const all: EventItem[] = [];
 
   for (const feed of FEEDS) {
@@ -158,7 +284,7 @@ export async function pollNews() {
         latencyMs: res.latencyMs,
         errorStreak: 1,
         message: res.error,
-        cadenceSec: 30,
+        cadenceSec: 60,
       });
       continue;
     }
@@ -171,7 +297,7 @@ export async function pollNews() {
         lastOk: new Date().toISOString(),
         latencyMs: res.latencyMs,
         errorStreak: 0,
-        cadenceSec: 30,
+        cadenceSec: 60,
       });
     } catch (err) {
       setHealth({
@@ -180,7 +306,7 @@ export async function pollNews() {
         latencyMs: res.latencyMs,
         errorStreak: 1,
         message: err instanceof Error ? err.message : String(err),
-        cadenceSec: 30,
+        cadenceSec: 60,
       });
     }
   }
@@ -227,9 +353,10 @@ export async function pollNews() {
     for (const a of gdelt.value.articles ?? []) {
       if (!a.title) continue;
       const occurredAt = a.seendate
-        ? new Date(
-            `${a.seendate.slice(0, 4)}-${a.seendate.slice(4, 6)}-${a.seendate.slice(6, 8)}T${a.seendate.slice(8, 10)}:${a.seendate.slice(10, 12)}:00Z`
-          ).toISOString()
+        ? safeIsoDate(
+            `${a.seendate.slice(0, 4)}-${a.seendate.slice(4, 6)}-${a.seendate.slice(6, 8)}T${a.seendate.slice(8, 10)}:${a.seendate.slice(10, 12)}:00Z`,
+            now
+          )
         : now;
       all.push(
         enrichEvent({
@@ -263,6 +390,9 @@ export async function pollNews() {
     });
   }
 
+  if (enrichImages) {
+    await enrichMissingImages(all, 8);
+  }
   upsertEvents(all);
 }
 

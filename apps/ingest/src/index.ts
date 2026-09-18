@@ -17,30 +17,41 @@ async function tick(label: string, fn: () => Promise<void>) {
 
 let cycle = 0;
 
+/**
+ * Stagger heavy work so we don't hammer CPU every tick:
+ * - every cycle: economy (cheap)
+ * - every 2nd: news RSS (+ optional OG thumbs)
+ * - every 2nd (offset): hazards
+ * - every 3rd: social experimental
+ */
 export async function runIngestCycle() {
   if (running) return;
   running = true;
   cycle += 1;
   try {
-    await Promise.all([
-      tick("economy", pollEconomy),
-      tick("news", pollNews),
-      tick("hazards", pollHazards),
-      tick("social", pollSocialExperimental),
-    ]);
-    if (cycle % 3 === 0) {
-      // reserved for heavier adapters
+    const jobs: Array<Promise<void>> = [tick("economy", pollEconomy)];
+
+    if (cycle % 2 === 1) {
+      jobs.push(tick("news", () => pollNews({ enrichImages: cycle % 4 === 1 })));
     }
+    if (cycle % 2 === 0) {
+      jobs.push(tick("hazards", pollHazards));
+    }
+    if (cycle % 3 === 0) {
+      jobs.push(tick("social", pollSocialExperimental));
+    }
+
+    await Promise.all(jobs);
     const bundle = await persistBundle();
     console.log(
-      `[ingest] bundle @ ${bundle.generatedAt} events=${bundle.events.length} ticker=${bundle.ticker.length} layers=${bundle.mapLayers.length} weather=${bundle.weather.length}`
+      `[ingest] cycle=${cycle} bundle @ ${bundle.generatedAt} events=${bundle.events.length} ticker=${bundle.ticker.length} layers=${bundle.mapLayers.length} weather=${bundle.weather.length}`
     );
   } finally {
     running = false;
   }
 }
 
-export function startIngestLoop(intervalMs = 25_000) {
+export function startIngestLoop(intervalMs = 90_000) {
   if (timer) return;
   console.log(`[ingest] starting loop every ${intervalMs}ms`);
   void runIngestCycle();

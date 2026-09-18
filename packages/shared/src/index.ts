@@ -391,7 +391,13 @@ export function summarizeTopics(events: EventItem[]): TopicIndicator[] {
         row.lastSource = ev.source;
         row.lastSummary = ev.summary?.slice(0, 140);
         row.lastImageUrl = imageUrl;
-      } else if (!row.lastImageUrl && imageUrl) {
+      } else if (imageUrl && !row.lastImageUrl) {
+        // Prefer a story that carries a real article thumb for the tile
+        row.lastTitle = ev.title;
+        row.lastUrl = ev.sourceUrl;
+        row.lastAt = ev.occurredAt;
+        row.lastSource = ev.source;
+        row.lastSummary = ev.summary?.slice(0, 140);
         row.lastImageUrl = imageUrl;
       } else if (!row.lastSummary && ev.summary) {
         row.lastSummary = ev.summary.slice(0, 140);
@@ -467,14 +473,91 @@ export function hashId(...parts: string[]): string {
 
 /** Collapse near-identical headlines for dedupe (strip accents, trailing " - fuente"). */
 export function normalizeHeadline(title: string): string {
-  return title
+  let t = title
     .toLowerCase()
     .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .replace(/\s*[-–|·]\s*[^-–|·]{1,48}$/u, "")
+    .replace(/\p{M}/gu, "");
+  // Strip trailing publisher segments once or twice ("Title - Outlet - Google News")
+  for (let i = 0; i < 2; i++) {
+    t = t.replace(/\s*[-–|·]\s*[^-–|·]{1,56}$/u, "");
+  }
+  return t
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Soft key: first meaningful words — catches near-duplicates with slightly different tails. */
+export function headlineDedupeKey(title: string): string {
+  const words = normalizeHeadline(title)
+    .split(" ")
+    .filter((w) => w.length > 2);
+  return words.slice(0, 5).join(" ");
+}
+
+/** Title for UI: drop trailing " - Publisher" so source isn't shown twice. */
+export function displayHeadline(title: string): string {
+  let t = title.trim();
+  for (let i = 0; i < 2; i++) {
+    const next = t.replace(/\s*[-–|·]\s*[^-–|·]{2,48}$/u, "").trim();
+    if (next.length < 18 || next === t) break;
+    t = next;
+  }
+  return t;
+}
+
+/** True when summary just repeats the headline (avoid double titular). */
+export function isRedundantSummary(title: string, summary?: string): boolean {
+  if (!summary) return true;
+  const a = normalizeHeadline(title);
+  const b = normalizeHeadline(summary).slice(0, Math.max(a.length + 8, 48));
+  if (!a || !b) return true;
+  if (a === normalizeHeadline(summary) || b.startsWith(a) || a.startsWith(b.slice(0, a.length))) {
+    return true;
+  }
+  const aw = a.split(" ").slice(0, 6).join(" ");
+  const bw = normalizeHeadline(summary).split(" ").slice(0, 6).join(" ");
+  return Boolean(aw) && aw === bw;
+}
+
+function mediaScore(item: { media?: { thumb?: string; url?: string }; imageUrl?: string }): number {
+  if (item.media?.thumb || item.media?.url || item.imageUrl) return 1;
+  return 0;
+}
+
+function mergeHeadlineItems<
+  T extends {
+    title: string;
+    source: string;
+    occurredAt: string;
+    summary?: string;
+    media?: { type?: string; url?: string; thumb?: string };
+    imageUrl?: string;
+  },
+>(prev: T, next: T): T {
+  const preferNext =
+    sourcePrecedence(next.source) > sourcePrecedence(prev.source) ||
+    (sourcePrecedence(next.source) === sourcePrecedence(prev.source) &&
+      new Date(next.occurredAt).getTime() > new Date(prev.occurredAt).getTime()) ||
+    (mediaScore(next) > mediaScore(prev) &&
+      sourcePrecedence(next.source) >= sourcePrecedence(prev.source) - 10);
+
+  const winner = preferNext ? { ...next } : { ...prev };
+  const other = preferNext ? prev : next;
+
+  if (!winner.media && other.media) winner.media = other.media;
+  if (!winner.imageUrl && other.imageUrl) winner.imageUrl = other.imageUrl;
+  if (!winner.imageUrl && winner.media) {
+    winner.imageUrl = winner.media.thumb || winner.media.url;
+  }
+  if (
+    (!winner.summary || isRedundantSummary(winner.title, winner.summary)) &&
+    other.summary &&
+    !isRedundantSummary(winner.title, other.summary)
+  ) {
+    winner.summary = other.summary;
+  }
+  return winner;
 }
 
 /** Higher = preferred when two stories share the same normalized title. */
@@ -547,29 +630,25 @@ export function sourceFaviconUrl(opts: {
 }
 
 export function dedupeByHeadline<
-  T extends { title: string; source: string; occurredAt: string },
+  T extends {
+    title: string;
+    source: string;
+    occurredAt: string;
+    summary?: string;
+    media?: { type?: string; url?: string; thumb?: string };
+    imageUrl?: string;
+  },
 >(items: T[]): T[] {
   const best = new Map<string, T>();
   for (const item of items) {
-    const key = normalizeHeadline(item.title);
+    const key = headlineDedupeKey(item.title);
     if (!key) continue;
     const prev = best.get(key);
     if (!prev) {
       best.set(key, item);
       continue;
     }
-    const nextScore = sourcePrecedence(item.source);
-    const prevScore = sourcePrecedence(prev.source);
-    if (nextScore > prevScore) {
-      best.set(key, item);
-      continue;
-    }
-    if (
-      nextScore === prevScore &&
-      new Date(item.occurredAt).getTime() > new Date(prev.occurredAt).getTime()
-    ) {
-      best.set(key, item);
-    }
+    best.set(key, mergeHeadlineItems(prev, item));
   }
   return [...best.values()];
 }

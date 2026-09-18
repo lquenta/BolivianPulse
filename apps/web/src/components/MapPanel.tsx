@@ -2,19 +2,26 @@
 
 import dynamic from "next/dynamic";
 import type { MapLayerPoint } from "@bo-dash/shared";
+import type { LayerEnabled } from "@/components/LayerRail";
 
 const MapCanvas = dynamic(() => import("./MapCanvas"), {
   ssr: false,
   loading: () => (
-    <section className="panel map-panel flex h-full min-h-[460px] flex-col overflow-hidden p-0">
-      <div className="flex h-[420px] flex-1 items-center justify-center gap-2 text-sm text-[var(--muted)]">
-        <span className="spinner" />
-        Cargando mapa…
-      </div>
-    </section>
+    <div className="flex h-full min-h-[280px] w-full items-center justify-center gap-2 bg-[var(--bg)] text-sm text-[var(--muted)]">
+      <span className="spinner" />
+      Cargando mapa…
+    </div>
   ),
 });
 
-export function MapPanel({ points }: { points: MapLayerPoint[] }) {
-  return <MapCanvas points={points} />;
+export function MapPanel({
+  points,
+  enabled,
+  bleed = false,
+}: {
+  points: MapLayerPoint[];
+  enabled: LayerEnabled;
+  bleed?: boolean;
+}) {
+  return <MapCanvas points={points} enabled={enabled} bleed={bleed} />;
 }

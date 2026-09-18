@@ -190,12 +190,12 @@ export function LiveIndicators({ bundle }: { bundle: DashboardBundle }) {
 
   if (!cards.length) {
     return (
-      <section className="panel live-strip h-full p-4 sm:p-5">
+      <section className="panel live-strip px-4 py-3 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="panel-title mb-0">En vivo</h2>
           <span className="live-badge">Esperando</span>
         </div>
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="mt-1.5 text-sm text-[var(--muted)]">
           Solo fuentes con cadencia ≤ {LIVE_CADENCE_MAX_SEC}s y datos frescos.
         </p>
       </section>
@@ -203,17 +203,17 @@ export function LiveIndicators({ bundle }: { bundle: DashboardBundle }) {
   }
 
   return (
-    <section className="panel live-strip h-full p-4 sm:p-5">
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-        <div>
+    <section className="panel live-strip px-4 py-3 sm:px-5">
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-baseline gap-2">
           <h2 className="panel-title mb-0">En vivo</h2>
-          <p className="mt-1 text-[0.7rem] text-[var(--muted)]">
+          <p className="text-[0.7rem] text-[var(--muted)]">
             Feeds ≤{LIVE_CADENCE_MAX_SEC}s
           </p>
         </div>
         <span className="live-badge">{cards.length}</span>
       </div>
-      <div className="live-strip__grid live-strip__grid--compact">
+      <div className="live-strip__grid">
         {cards.map((card, i) => (
           <div
             key={card.id}
